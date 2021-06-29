@@ -10,19 +10,22 @@ rospy.init_node('move_bot')
 publisher = rospy.Publisher('cmd_vel', Twist, queue_size=1)
 rate = rospy.Rate(30)  # hz
 
-ANGULAR_SPEED = 0.15
-LINEAR_SPEED = 0.5
+ANGULAR_SPEED = 0.15  # optimum angular speed
+LINEAR_SPEED = 0.5  # optimum linear speed
+# minimum angle difference between orientation of the bot and destination
 ANGLE_THRESHOLD = 0.1
+# distance between the bot and the destination which the bot will try to achive
 POSITION_THRESHOLD = 0.001
 
-x = 0.0
-y = 0.0
-theta = 0.0
+x = 0.0  # current x coordinate of the bot
+y = 0.0  # current y coordinate of the bot
+theta = 0.0  # current angle along z axis of the bot
 goal_x = 0.0
 goal_y = 0.0
 
 
 def callback(odom: Odometry) -> None:
+    # Update the position data
     global x
     global y
     global theta
@@ -64,21 +67,26 @@ while not rospy.is_shutdown():
         delta_theta = math.atan2(delta_y, delta_x) - theta
 
         if delta_theta > ANGLE_THRESHOLD:
+            # if the destination is in left go left
             speed.linear.x = 0.0
             speed.angular.z = ANGULAR_SPEED
         elif delta_theta < - ANGLE_THRESHOLD:
+            # if the destination is in right go right
             speed.linear.x = 0.0
             speed.angular.z = - ANGULAR_SPEED
         else:
+            # destination is straight ahead go straight
             speed.linear.x = LINEAR_SPEED
             speed.angular.z = 0.0
 
+        # print verbose data
         print("Linear vel:{}, Angular_vel:{}".format(
             speed.linear.x, speed.angular.z))
 
         publisher.publish(speed)
 
         if at_the_goal(delta_x, delta_y):
+            # when destination is reached, stop the bot
             stop_bot()
             break
-        rate.sleep()
+        rate.sleep()  # run the loop 30 times a sec
