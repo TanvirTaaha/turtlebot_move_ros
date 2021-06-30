@@ -8,14 +8,14 @@ from tf.transformations import euler_from_quaternion
 
 rospy.init_node('move_bot')
 publisher = rospy.Publisher('cmd_vel', Twist, queue_size=1)
-rate = rospy.Rate(30)  # hz
+rate = rospy.Rate(35)  # hz
 
 ANGULAR_SPEED = 0.15  # optimum angular speed
 LINEAR_SPEED = 0.5  # optimum linear speed
 # minimum angle difference between orientation of the bot and destination
 ANGLE_THRESHOLD = 0.1
 # distance between the bot and the destination which the bot will try to achive
-POSITION_THRESHOLD = 0.001
+POSITION_THRESHOLD = 0.01
 
 x = 0.0  # current x coordinate of the bot
 y = 0.0  # current y coordinate of the bot
@@ -66,22 +66,24 @@ while not rospy.is_shutdown():
         delta_y = goal_y - y
         delta_theta = math.atan2(delta_y, delta_x) - theta
 
-        if delta_theta > ANGLE_THRESHOLD:
+        s = (delta_theta / 3)
+
+        if delta_theta >= ANGLE_THRESHOLD:
             # if the destination is in left go left
             speed.linear.x = 0.0
-            speed.angular.z = ANGULAR_SPEED
-        elif delta_theta < - ANGLE_THRESHOLD:
+            speed.angular.z = (s if abs(s) > ANGULAR_SPEED else ANGULAR_SPEED)
+        elif delta_theta <= - ANGLE_THRESHOLD:
             # if the destination is in right go right
             speed.linear.x = 0.0
-            speed.angular.z = - ANGULAR_SPEED
+            speed.angular.z = (s if abs(s) > ANGULAR_SPEED else -ANGULAR_SPEED)
         else:
             # destination is straight ahead go straight
             speed.linear.x = LINEAR_SPEED
             speed.angular.z = 0.0
 
         # print verbose data
-        print("Linear vel:{}, Angular_vel:{}".format(
-            speed.linear.x, speed.angular.z))
+        print("Linear vel:{}, Angular_vel:{}, delta_theta:{}".format(
+            speed.linear.x, speed.angular.z, delta_theta))
 
         publisher.publish(speed)
 
